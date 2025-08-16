@@ -71,6 +71,6 @@ Este ejercicio contiene una introducción a la programación con hilos en Java, 
    ```
    Y al ejecutarlo, podemos apreciar que, ahora sí, los números del 0 al 299 se imprimen en orden.
    
-   Es posible **conlcuir** de esta práctica, que al utilizar el método *run()* cada hilo espera a que el anterior termine su trabajo para empezar el suyo propio. A deferencia de utilizar el método *start()*, donde cada hilo parece preocuparse por ejecutar su tarea sin importarle si hay otro proceso trabajando en el momento.
+   Es posible **concluir** de esta práctica, que al utilizar el método *run()* cada hilo espera a que el anterior termine su trabajo para empezar el suyo propio. A deferencia de utilizar el método *start()*, donde cada hilo parece preocuparse por ejecutar su tarea sin importarle si hay otro proceso trabajando en el momento.
 
 ## Parte II - Ejercicio Black List Search

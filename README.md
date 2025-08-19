@@ -53,7 +53,7 @@ Este ejercicio contiene una introducción a la programación con hilos en Java, 
 
    }
    ```
-   Al desarrollarlo de esta forma, vemos que los números se generaron con prioridades aleatorias en consola, quedando de esta forma, los números del 0 al 299 en desorden.
+   Al desarrollarlo de esta forma, vemos que los números se generaron con prioridades aleatorias en consola, quedando de esta forma, los números del 0 al 299 en desorden. Esto es debido a que todos los hilos se están ejecutando a la vez.
    
    Ahora, cambiaremos el método start() por run(), dejando el método main de la forma:
    ```java
@@ -69,11 +69,7 @@ Este ejercicio contiene una introducción a la programación con hilos en Java, 
         thread3.run();
     }
    ```
-   Y al ejecutarlo, podemos apreciar que, ahora sí, los números del 0 al 299 se imprimen en orden.
-   
-   Es posible **concluir** de esta práctica, que al utilizar el método *run()* cada hilo espera a que el anterior termine su trabajo para empezar el suyo propio. A deferencia de utilizar el método *start()*, donde cada hilo parece preocuparse por ejecutar su tarea sin importarle si hay otro proceso trabajando en el momento.
-   
-   Otro experimento interesante, se ve a la hora de agregar la línea *System.out.println("end");* al final de las ejecuciones de los hilos, pues se puede ver que en el caso de _run()_ se respeta el orden de las solicitudes, ejecutando esta impresión en pantalla al final de la ejecución de los hilos, justo después del número 299. En cambio, en el caso de _start()_ lo vemos ejecutarse al inicio, mostrando que el orden de las operaciones no es respetado.
+   Y al ejecutarlo, podemos apreciar que, ahora sí, los números del 0 al 299 se imprimen en orden, pues únicamente estamos llamando al método run, ejecutando así todos los procesos en un solo hilo, en lugar de correr cada hilo por aparte.
 
 ## Parte II - Ejercicio Black List Search
 Para un software de vigilancia automática de seguridad informática se está desarrollando un componente encargado de validar las direcciones IP en varios miles de listas negras (de host maliciosos) conocidas, y reportar aquellas que existan en al menos cinco de dichas listas.
@@ -81,3 +77,18 @@ Para un software de vigilancia automática de seguridad informática se está de
 Dicho componente está diseñado de acuerdo con el siguiente diagrama, donde:
 * HostBlackListsDataSourceFacade es una clase que ofrece una 'fachada' para realizar consultas en cualquiera de las N listas negras registradas (método 'isInBlacklistServer'), y que permite también hacer un reporte a una base de datos local de cuando una dirección IP se considera peligrosa. Esta clase NO ES MODIFICABLE, pero se sabe que es 'Thread-Safe'.
 * HostBlackListsValidator es una clase que ofrece el método 'checkHost', el cual, a través de la clase 'HostBlackListDataSourceFacade', valida en cada una de las listas negras un host determinado. En dicho método está considerada la política de que al encontrarse un HOST en al menos cinco listas negras, el mismo será registrado como 'no confiable', o como 'confiable' en caso contrario. Adicionalmente, retornará la lista de los números de las 'listas negras' en donde se encontró registrado el HOST.
+![Model.png](img/Model.png)
+  Al usarse el módulo, la evidencia de que se hizo el registro como 'confiable' o 'no confiable' se dá por lo mensajes de LOGs:
+* INFO: HOST 205.24.34.55 Reported as trustworthy 
+* INFO: HOST 205.24.34.55 Reported as NOT trustworthy
+
+Al programa de prueba provisto (Main), le toma sólo algunos segundos análizar y reportar la dirección provista (200.24.34.55), ya que la misma está registrada más de cinco veces en los primeros servidores, por lo que no requiere recorrerlos todos. Sin embargo, hacer la búsqueda en casos donde NO hay reportes, o donde los mismos están dispersos en las miles de listas negras, toma bastante tiempo. 
+
+Éste, como cualquier método de búsqueda, puede verse como un problema vergonzosamente paralelo, ya que no existen dependencias entre una partición del problema y otra. 
+
+Para 'refactorizar' este código, y hacer que explote la capacidad multi-núcleo de la CPU del equipo, realice lo siguiente:
+1. Cree una clase de tipo Thread que represente el ciclo de vida de un hilo que haga la búsqueda de un segmento del conjunto de servidores disponibles. Agregue a dicha clase un método que permita 'preguntarle' a las instancias del mismo (los hilos) cuantas ocurrencias de servidores maliciosos ha encontrado o encontró
+
+   **Desarrollo:** 
+
+2. Agregue al método 'checkHost' un parámetro entero N, correspondiente al número de hilos entre los que se va a realizar la búsqueda (recuerde tener en cuenta si N es par o impar!). Modifique el código de este método para que divida el espacio de búsqueda entre las N partes indicadas, y paralelice la búsqueda a través de N hilos. Haga que dicha función espere hasta que los N hilos terminen de resolver su respectivo sub-problema, agregue las ocurrencias encontradas por cada hilo a la lista que retorna el método, y entonces calcule (sumando el total de ocurrencuas encontradas por cada hilo) si el número de ocurrencias es mayor o igual a BLACK_LIST_ALARM_COUNT. Si se da este caso, al final se DEBE reportar el host como confiable o no confiable, y mostrar el listado con los números de las listas negras respectivas. Para lograr este comportamiento de 'espera' revise el método join del API de concurrencia de Java. Tenga también en cuenta:

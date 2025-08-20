@@ -12,6 +12,7 @@ import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -39,10 +40,12 @@ public class HostBlackListsValidator {
 
         HostBlacklistsDataSourceFacade skds=HostBlacklistsDataSourceFacade.getInstance();
 
+        AtomicInteger globalOccurrences = new AtomicInteger(0); /*Inicializamos el contador atómico*/
+
         List<int[]> indexes = divideSegments(skds.getRegisteredServersCount(), threads); /*Obtenemos índices*/
         ArrayList<BlackListSearcher> searchers = new ArrayList(); /*Creamos la lista con 0 hilos*/
         for (int[] pair : indexes) {
-            BlackListSearcher localThread = new BlackListSearcher(pair[0], pair[1], ipaddress);
+            BlackListSearcher localThread = new BlackListSearcher(pair[0], pair[1], ipaddress, BLACK_LIST_ALARM_COUNT, globalOccurrences);
             localThread.start();
             searchers.add(localThread); /*Agregamos un hilo por cada segmento solicitado*/
         }

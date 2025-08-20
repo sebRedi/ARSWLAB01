@@ -240,3 +240,116 @@ Para 'refactorizar' este código, y hacer que explote la capacidad multi-núcleo
    }
    ```
    De esta forma quedaría completamente implementada una solución que busca en todas las blacklists. Y daríamos por finalizado el ejercicio.
+
+
+   Sin embargo, personalmente, aún continúa una inquietud, lógicamente a mayor cantidad de hilos en la tarea, más rápido recorreremos todas las blacklist. Sin embargo, un ejercicio interesante sería encontrar una forma interesante de comunicar los hilos, de tal forma que puedan detener la búsqueda al completar en total las 5 ocurrencias entre todos.
+
+   Tras realizar una búsqueda, encontré información sobre los contadores compartidos, haremos uso de la clase AtomicInteger para realizar la prueba:
+   
+   **Clase BlackListSearcher:**
+   ```java
+      package edu.eci.arsw.spamkeywordsdatasource;
+      
+      import java.util.ArrayList;
+      import java.util.List;
+      import java.util.concurrent.atomic.AtomicInteger;
+      
+      /**
+       *
+       * @author sebastianGalvis
+       */
+      public class BlackListSearcher extends Thread /*Usaremos la herencia en lugar de la implementación de la interfaz, pues así lo solicita el ejercicio*/{
+         private int from; /*El punto inicial del segmento asignado al hilo*/
+         private int to; /*El punto final del semgneto asignado al hilo*/
+         private String ip;
+         private List<Integer> resultsIndexes; /*Vamos a ir guardando los índices de aquellas blacklist que reportaron la ip*/
+         private int count;
+         private int limit;
+         private AtomicInteger globalOccurrences;/*Referencia compartida*/
+      
+         /*Modificamos el hilo para que conozca la cantidad máxima de ocurrencias permitida y para que tenga el contador compartido*/
+         public BlackListSearcher(int from, int to, String ip, int limit, AtomicInteger globalOccurrences) {
+            this.from = from;
+            this.to = to;
+            this.ip = ip;
+            this.count = 0;
+            this.resultsIndexes = new ArrayList<Integer>();
+            this.limit = limit;
+            this.globalOccurrences = globalOccurrences;
+         }
+      
+         @Override
+         public void run() {
+            HostBlacklistsDataSourceFacade skds = HostBlacklistsDataSourceFacade.getInstance(); /* Por la forma en que se usa en Main, podemos interpretar que es un singleton que podemos consultar en cualquier momento */
+            for (int i = from; i < to; i++) {
+               /*Si el límite ya fue alcanzado entre todos los hilos, se detienen*/
+               if (globalOccurrences.get() >= limit) break;
+      
+               count++;
+               if (skds.isInBlackListServer(i, ip)) {
+                  resultsIndexes.add(i);
+                  globalOccurrences.incrementAndGet(); /*Aumenta el contador compartido*/
+               }
+            }
+      
+         }
+      
+         public List<Integer> getResultsIndexes() {
+            return resultsIndexes; /*Como lo pide el enunciado*/
+         }
+      
+         public int getCount() {
+            return count;
+         }
+      
+      }
+   ```
+   
+   **Método CheckHost:**
+   ``` java
+   public List<Integer> checkHost(String ipaddress, int threads){
+
+        LinkedList<Integer> blackListOcurrences=new LinkedList<>();
+
+        HostBlacklistsDataSourceFacade skds=HostBlacklistsDataSourceFacade.getInstance();
+
+        AtomicInteger globalOccurrences = new AtomicInteger(0); /*Inicializamos el contador atómico*/
+
+        List<int[]> indexes = divideSegments(skds.getRegisteredServersCount(), threads); /*Obtenemos índices*/
+        ArrayList<BlackListSearcher> searchers = new ArrayList(); /*Creamos la lista con 0 hilos*/
+        for (int[] pair : indexes) {
+            BlackListSearcher localThread = new BlackListSearcher(pair[0], pair[1], ipaddress, BLACK_LIST_ALARM_COUNT, globalOccurrences);
+            localThread.start();
+            searchers.add(localThread); /*Agregamos un hilo por cada segmento solicitado*/
+        }
+        /*Hasta este punto ya tenemos N hilos trabajando en la búsqueda*/
+
+        for (BlackListSearcher s : searchers) {
+            try {
+                s.join();
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+        } /*Esperamos a que todos terminen*/
+
+        int ocurrencesCount = 0;
+        int checkedListsCount = 0;
+
+        for (BlackListSearcher s : searchers) {
+            blackListOcurrences.addAll(s.getResultsIndexes());
+            ocurrencesCount += s.getResultsIndexes().size();
+            checkedListsCount += s.getCount();
+        } /*Recolectamos los resultados de cada hilo*/
+
+        if (ocurrencesCount >= BLACK_LIST_ALARM_COUNT) {
+            skds.reportAsNotTrustworthy(ipaddress);
+        } else {
+            skds.reportAsTrustworthy(ipaddress);
+        } /*Reportamos según la regla*/
+
+        LOG.log(Level.INFO, "Checked Black Lists:{0} of {1}",
+                new Object[]{checkedListsCount, skds.getRegisteredServersCount()});
+
+        return blackListOcurrences;
+   }
+   ```

@@ -89,6 +89,55 @@ Al programa de prueba provisto (Main), le toma sólo algunos segundos análizar 
 Para 'refactorizar' este código, y hacer que explote la capacidad multi-núcleo de la CPU del equipo, realice lo siguiente:
 1. Cree una clase de tipo Thread que represente el ciclo de vida de un hilo que haga la búsqueda de un segmento del conjunto de servidores disponibles. Agregue a dicha clase un método que permita 'preguntarle' a las instancias del mismo (los hilos) cuantas ocurrencias de servidores maliciosos ha encontrado o encontró
 
-   **Desarrollo:** 
+   **Desarrollo:** La solución propuesta para este punto sería la siguiente:
+   ``` java
+   package edu.eci.arsw.spamkeywordsdatasource;
+   
+   import java.util.ArrayList;
+   import java.util.List;
+   
+   /**
+   *
+     * @author sebastianGalvis
+       */
+       public class BlackListSearcher extends Thread /*Usaremos la herencia en lugar de la implementación de la interfaz, pues así lo solicita el ejercicio*/{
+          private int from; /*El punto inicial del segmento asignado al hilo*/
+          private int to; /*El punto final del semgneto asignado al hilo*/
+          private String ip;
+          private List<Integer> resultsIndexes; /*Vamos a ir guardando los índices de aquellas blacklist que reportaron la ip*/
+          private int count;
+   
+          public BlackListSearcher(int from, int to, String ip) {
+             this.from = from;
+             this.to = to;
+             this.ip = ip;
+             this.count = 0;
+             this.resultsIndexes = new ArrayList<Integer>();
+          }
+   
+          @Override
+          public void run() {
+             HostBlacklistsDataSourceFacade skds = HostBlacklistsDataSourceFacade.getInstance(); /* Por la forma en que se usa en Main, podemos interpretar que es un singleton que podemos consultar en cualquier momento */
+             for(int i = from; i < to; i++) /*Los cortes que se le asignarán a cada hilo*/ {
+                if(skds.isInBlackListServer(i, ip)){
+                resultsIndexes.add(i);
+                }
+                count++;
+             }
+      
+          }
+   
+          public List<Integer> getResultsIndexes() {
+            return resultsIndexes; /*Como lo pide el enunciado*/
+          }
+      
+          public int getCount() {
+            return count;
+          }
+   
+   }
+   ```
+   Entendiendo que *HostBlacklistsDataSourceFacade* es un singleton que podemos consultar en cualquier momento por cualquier clase, y entendiendo la clase *BlackListSearcher* como un hilo que realiza la búsqueda en su segmento correspondiente, siendo posible consultar sus resultados acumulados en cualquier momento.
+
 
 2. Agregue al método 'checkHost' un parámetro entero N, correspondiente al número de hilos entre los que se va a realizar la búsqueda (recuerde tener en cuenta si N es par o impar!). Modifique el código de este método para que divida el espacio de búsqueda entre las N partes indicadas, y paralelice la búsqueda a través de N hilos. Haga que dicha función espere hasta que los N hilos terminen de resolver su respectivo sub-problema, agregue las ocurrencias encontradas por cada hilo a la lista que retorna el método, y entonces calcule (sumando el total de ocurrencuas encontradas por cada hilo) si el número de ocurrencias es mayor o igual a BLACK_LIST_ALARM_COUNT. Si se da este caso, al final se DEBE reportar el host como confiable o no confiable, y mostrar el listado con los números de las listas negras respectivas. Para lograr este comportamiento de 'espera' revise el método join del API de concurrencia de Java. Tenga también en cuenta:

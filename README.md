@@ -354,7 +354,7 @@ Para 'refactorizar' este código, y hacer que explote la capacidad multi-núcleo
    }
    ```
 
-De esta forma, hemos conseguido comunicar los hilos entre si, de tal forma que, si entre todos encuentran el máixmo número de ocurrencias permitido antes de finalizar la búqueda de sus propios segmentos, terminan la acción y envían la alerta.
+De esta forma, hemos conseguido comunicar los hilos entre si, de tal forma que, si entre todos encuentran el máximo número de ocurrencias permitido antes de finalizar la búsqueda de sus propios segmentos, terminan la acción y envían la alerta.
 
 
 ## Parte II.I Para discutir la próxima clase (NO para implementar aún)

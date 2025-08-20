@@ -355,3 +355,41 @@ Para 'refactorizar' este código, y hacer que explote la capacidad multi-núcleo
    ```
 
 De esta forma, hemos conseguido comunicar los hilos entre si, de tal forma que, si entre todos encuentran el máixmo número de ocurrencias permitido antes de finalizar la búqueda de sus propios segmentos, terminan la acción y envían la alerta.
+
+
+## Parte II.I Para discutir la próxima clase (NO para implementar aún)
+La estrategia de paralelismo antes implementada es ineficiente en ciertos casos, pues la búsqueda se sigue realizando aún cuando los N hilos (en su conjunto) ya hayan encontrado el número mínimo de ocurrencias requeridas para reportar al servidor como malicioso. Cómo se podría modificar la implementación para minimizar el número de consultas en estos casos?, qué elemento nuevo traería esto al problema?
+
+**Respuesta:** Leí este punto después de haber trabajado en esta duda, aprendí sobre cómo compartir información entre hilos mediante, en este caso, contadores atómicos.
+
+
+## Parte III - Evaluación de Desempeño
+A partir de lo anterior, implemente la siguiente secuencia de experimentos para realizar las validación de direcciones IP dispersas (por ejemplo 202.24.34.55), tomando los tiempos de ejecución de los mismos (asegúrese de hacerlos en la misma máquina):
+* Un solo hilo. 
+* Tantos hilos como núcleos de procesamiento (haga que el programa determine esto haciendo uso del API Runtime). 
+* Tantos hilos como el doble de núcleos de procesamiento. 
+* 50 hilos. 
+* 100 hilos.
+
+Al iniciar el programa ejecute el monitor jVisualVM, y a medida que corran las pruebas, revise y anote el consumo de CPU y de memoria en cada caso.
+
+![jvisualvm.png](img/jvisualvm.png)
+
+Con lo anterior, y con los tiempos de ejecución dados, haga una gráfica de tiempo de solución vs. número de hilos. Analice y plantee hipótesis con su compañero para las siguientes preguntas (puede tener en cuenta lo reportado por jVisualVM):
+
+
+## Parte IV - Ejercicio Black List Search
+
+1. Según la ley de Amdahls:
+   
+   ![ahmdahls.png](img/ahmdahls.png),
+   
+   donde S(n) es el mejoramiento teórico del desempeño, P la fracción paralelizable del algoritmo, y n el número de hilos, a mayor n, mayor debería ser dicha mejora. Por qué el mejor desempeño no se logra con los 500 hilos?, cómo se compara este desempeño cuando se usan 200?.
+
+2. Cómo se comporta la solución usando tantos hilos de procesamiento como núcleos comparado con el resultado de usar el doble de éste?.
+
+3. De acuerdo con lo anterior, si para este problema en lugar de 100 hilos en una sola CPU se pudiera usar 1 hilo en cada una de 100 máquinas hipotéticas, la ley de Amdahls se aplicaría mejor?. Si en lugar de esto se usaran c hilos en 100/c máquinas distribuidas (siendo c es el número de núcleos de dichas máquinas), se mejoraría?. Explique su respuesta.
+
+
+
+

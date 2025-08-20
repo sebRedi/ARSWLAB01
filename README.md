@@ -141,3 +141,102 @@ Para 'refactorizar' este código, y hacer que explote la capacidad multi-núcleo
 
 
 2. Agregue al método 'checkHost' un parámetro entero N, correspondiente al número de hilos entre los que se va a realizar la búsqueda (recuerde tener en cuenta si N es par o impar!). Modifique el código de este método para que divida el espacio de búsqueda entre las N partes indicadas, y paralelice la búsqueda a través de N hilos. Haga que dicha función espere hasta que los N hilos terminen de resolver su respectivo sub-problema, agregue las ocurrencias encontradas por cada hilo a la lista que retorna el método, y entonces calcule (sumando el total de ocurrencuas encontradas por cada hilo) si el número de ocurrencias es mayor o igual a BLACK_LIST_ALARM_COUNT. Si se da este caso, al final se DEBE reportar el host como confiable o no confiable, y mostrar el listado con los números de las listas negras respectivas. Para lograr este comportamiento de 'espera' revise el método join del API de concurrencia de Java. Tenga también en cuenta:
+   
+   * Dentro del método checkHost Se debe mantener el LOG que informa, antes de retornar el resultado, el número de listas negras revisadas VS. el número de listas negras total (línea 60). Se debe garantizar que dicha información sea verídica bajo el nuevo esquema de procesamiento en paralelo planteado. 
+   * Se sabe que el HOST 202.24.34.55 está reportado en listas negras de una forma más dispersa, y que el host 212.24.24.55 NO está en ninguna lista negra.
+
+   **Desarrollo:** De acuerdo a *stackovercoder.es*, todo problema vergonzosamente paralelo se divide en 3 fases:
+   1. Leer datos de entrada.
+   2. Ejecutar los cálculos necesarios sobre la entrada.
+   3. Escribir los resultados de los cálculos.
+   
+   La parte 2 se puede ejecutar en varios núcleos, ya que cada cálculo es independiente; el orden de procesamiento no importa. Dividiendo así el trabajo sin la necesidad de comunicar los núcelos entre sí.
+   
+   Sabemos que tenemos tantos servidores como *skds.getRegisteredServersCount()* (Que tomaremos como L). Para dividir _skds_ en diferentes segmentos, cada hilo debe de contar con un indice inicial y uno final.
+
+   La longitud promedio de cada segmento sería L // N (división entera).
+   
+   Puede que sobre un residuo (L % N), que significa que no todos los segmentos pueden tener exactamente el mismo tamaño.
+   
+   Para repartirlo lo más justo posible, se asigna un elemento extra a los primeros residuo segmentos.
+   ```java
+   private static List<int[]> divideSegments(int L /*Longitud total*/, int N/*Cantidad de hilos*/) {
+        List<int[]> indexes = new ArrayList<>();
+
+        int base = L / N;
+        int rest = L % N;
+
+        int start = 0;
+        for (int i = 0; i < N; i++) {
+            int len = base + (i < rest ? 1 : 0);
+            int end = start + len;
+            indexes.add(new int[]{start, end});
+            start = end;
+        }
+        return indexes;
+   }
+   ```
+   
+   Al llamar al método checkHost(), se indicará cuántos hilos se desean usar.
+   
+   Teniendo esta herramienta, poner N hilos a trabajar es la parte más sencilla del trabajo, pues lo hacemos de la forma:
+   ``` java
+   HostBlacklistsDataSourceFacade skds=HostBlacklistsDataSourceFacade.getInstance();
+
+   List<int[]> indexes = divideSegments(skds.getRegisteredServersCount(), threads); /*Obtenemos índices*/
+   ArrayList<BlackListSearcher> searchers = new ArrayList(); /*Creamos la lista con 0 hilos*/
+   for (int[] pair : indexes) {
+      BlackListSearcher localThread = new BlackListSearcher(pair[0], pair[1], ipaddress);
+      localThread.start();
+      searchers.add(localThread); /*Agregamos un hilo por cada segmento solicitado*/
+   }
+   /*Hasta este punto ya tenemos N hilos trabajando en la búsqueda*/
+   ```
+   
+   Teniendo esto, ahora solo tenemos que recolectar los resultados de cada hilo y hacer el reporte, dejando el método de la forma:
+   ``` java
+   public List<Integer> checkHost(String ipaddress, int threads){
+
+        LinkedList<Integer> blackListOcurrences=new LinkedList<>();
+
+        HostBlacklistsDataSourceFacade skds=HostBlacklistsDataSourceFacade.getInstance();
+
+        List<int[]> indexes = divideSegments(skds.getRegisteredServersCount(), threads); /*Obtenemos índices*/
+        ArrayList<BlackListSearcher> searchers = new ArrayList(); /*Creamos la lista con 0 hilos*/
+        for (int[] pair : indexes) {
+            BlackListSearcher localThread = new BlackListSearcher(pair[0], pair[1], ipaddress);
+            localThread.start();
+            searchers.add(localThread); /*Agregamos un hilo por cada segmento solicitado*/
+        }
+        /*Hasta este punto ya tenemos N hilos trabajando en la búsqueda*/
+
+        for (BlackListSearcher s : searchers) {
+            try {
+                s.join();
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+        } /*Esperamos a que todos terminen*/
+
+        int ocurrencesCount = 0;
+        int checkedListsCount = 0;
+
+        for (BlackListSearcher s : searchers) {
+            blackListOcurrences.addAll(s.getResultsIndexes());
+            ocurrencesCount += s.getResultsIndexes().size();
+            checkedListsCount += s.getCount();
+        } /*Recolectamos los resultados de cada hilo*/
+
+        if (ocurrencesCount >= BLACK_LIST_ALARM_COUNT) {
+            skds.reportAsNotTrustworthy(ipaddress);
+        } else {
+            skds.reportAsTrustworthy(ipaddress);
+        } /*Reportamos según la regla*/
+
+        LOG.log(Level.INFO, "Checked Black Lists:{0} of {1}",
+                new Object[]{checkedListsCount, skds.getRegisteredServersCount()});
+
+        return blackListOcurrences;
+   }
+   ```
+   De esta forma quedaría completamente implementada una solución que busca en todas las blacklists. Y daríamos por finalizado el ejercicio.

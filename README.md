@@ -454,7 +454,7 @@ Tomándome el atrevimiento de teorizar, pensaría que esto se debe a que, al agr
 Teniendo esto en cuenta, lo más probable es que:
 * Los hilos no estaban consumiendo CPU todo el tiempo, sino bloqueados esperando respuestas.
 * Al meter muchos hilos, mientras unos esperan, otros trabajan, lo que traduce en un CPU siempre ocupado.
-* La JVM también optimiza la ejecución interna con sus scheduler pools, que reparten mejor el trabajo con más hilos en la cola.
+* La JVM también optimiza la ejecución interna con sus scheduler pools *(agrupan tareas y las envían como trabajo a los hilos gestionados por el Sistema Operativo)*, que reparten mejor el trabajo con más hilos en la cola.
 
 
 

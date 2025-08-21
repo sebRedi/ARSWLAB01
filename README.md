@@ -441,7 +441,7 @@ Sabemos que
   Esta fracción es la que explica por qué con 500 hilos no se acelera más, sino que incluso empeora por overhead (*costo adicional (tiempo, recursos, memoria, energía, etc.) que se necesita para realizar una tarea, aparte del trabajo útil que realmente queremos hacer*).
 
 Al usar tantos hilos como núcleos obtenemos casi el mismo resultado que al usar el doble, debido a que en este tipo de trabajos usar un número de hilos igual al número de núcelos suele dar el mejor tiempo (o un timepo muy cercano al mejor).
-Al usar el doble de hilos se entra en sobresuscripción y normalmente el tiempo no mejora e incluso empeora. 
+Al usar el doble de hilos se entra en sobresuscripción *(tener más hilos activos que núcleos de CPU disponibles para ejecutarlos en paralelo)* y normalmente el tiempo no mejora e incluso empeora. 
 * Cambios de contexto: con más hilos que núcleos, el Sistema Operativo rota hilos continuamente, lo que se traduce en tiempo perdido en vez de avanzar.
 * Pérdida de caché: más hilos compitiendo, significa más “cache thrash”, lo que traduce más latencia de memoria.
 

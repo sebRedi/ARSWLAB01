@@ -15,8 +15,25 @@ public class Main {
     
     public static void main(String a[]){
         HostBlackListsValidator hblv=new HostBlackListsValidator();
-        List<Integer> blackListOcurrences=hblv.checkHost("200.24.34.55", 3);
+
+        int cores = Runtime.getRuntime().availableProcessors();
+
+        long start = System.currentTimeMillis();
+        List<Integer> blackListOcurrences=hblv.checkHost("200.24.34.55", cores);
+        long end = System.currentTimeMillis();
+        long duration = end - start;
         System.out.println("The host was found in the following blacklists:"+blackListOcurrences);
+        System.out.println("Search time: " + duration + " ms");
+
+        /*
+        try{
+            Thread.sleep(3_000);
+        }
+        catch(InterruptedException e){
+            Thread.currentThread().interrupt();
+        }
+        */
+
         
     }
     

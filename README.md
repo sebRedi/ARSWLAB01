@@ -377,6 +377,49 @@ Al iniciar el programa ejecute el monitor jVisualVM, y a medida que corran las p
 
 Con lo anterior, y con los tiempos de ejecución dados, haga una gráfica de tiempo de solución vs. número de hilos. Analice y plantee hipótesis con su compañero para las siguientes preguntas (puede tener en cuenta lo reportado por jVisualVM):
 
+Para empezar, vamos a usar la clase System para calcular los tiempos que tardan las ejecuciones, de la forma:
+``` java
+long start = System.currentTimeMillis();
+/*Proceso a medir*/
+long end = System.currentTimeMillis();
+long duration = end - start;
+```
+
+De esta forma, y ya habiendo descargado jVisualVM, procederemos a efectuar las pruebas:
+* Un solo hilo:
+   - Tiempo de ejecución: 1593 ms
+
+* Tantos hilos como núcleos de procesamiento:
+   - Tiempo de ejecución: 1563 ms
+
+* Tantos hilos como el doble de núcleos de procesamiento:
+   - Tiempo de ejecución: 1583 ms
+
+* 50 hilos:
+   - Tiempo de ejecución: 1593 ms
+
+* 100 hilos:
+   - Tiempo de ejecución: 797 ms
+
+* 200 hilos (experimento adicional):
+   - Tiempo de ejecución: 354 ms
+
+* 400 hilos (experimento adicional):
+   - Tiempo de ejecución: 206 ms
+
+* 800 hilos (experimento adicional):
+   - Tiempo de ejecución: 175 ms
+
+* 1200 hilos (experimento adicional):
+   - Tiempo de ejecución: 271 ms
+
+En base a los resultados obtenidos, graficamos el tiempo que toma efectuar la búsqueda de acuerdo a la cantidad de hilos:
+
+![img.png](img/graphic.png)
+
+Nota: Debido al corto tiempo de ejecución, VisualVM no alcanzó a registrar y mostrar consumos de CPU y memoria. De tal forma que se tuvo que omitir el registro de dichos resultados en el documento.
+
+*Incluso, se intentó agregar un tiempo de sleep al final para darle más tiempo al programa, pero seguía sin registrarlo.*
 
 ## Parte IV - Ejercicio Black List Search
 

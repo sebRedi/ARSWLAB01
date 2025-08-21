@@ -477,3 +477,9 @@ Caso 3: Usar c hilos en 100/c máquinas (siendo c el número de núcleos por má
 * La eficiencia sería mayor que en el caso de 100 hilos en una sola máquina, porque se reducirían los cambios de contexto y se aprovecharían mejor los recursos.
 
 
+
+## Conclusión:
+
+A lo largo de este laboratorio pude comprender de manera práctica cómo funcionan los hilos en Java y cómo permiten aprovechar la concurrencia en la ejecución de procesos. La implementación de múltiples hilos evidenció la capacidad de dividir tareas en segmentos más pequeños y ejecutarlos en paralelo, lo que mejora el rendimiento en comparación con una ejecución secuencial.
+
+Este laboratorio me permitió relacionar el uso de hilos con la arquitectura de hardware, mostrando cómo la cantidad de núcleos en un procesador impacta directamente en la eficiencia de la ejecución paralela. Con este aprendizaje, se afianzan bases sólidas para el desarrollo de aplicaciones más eficientes y escalables en el futuro.

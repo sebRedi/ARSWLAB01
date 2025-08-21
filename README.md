@@ -431,8 +431,49 @@ Nota: Debido al corto tiempo de ejecución, VisualVM no alcanzó a registrar y m
 
 2. Cómo se comporta la solución usando tantos hilos de procesamiento como núcleos comparado con el resultado de usar el doble de éste?.
 
+Sabemos que 
+* S(n): “Speedup” o mejoramiento del desempeño con n hilos,
+  Representa cuántas veces es más rápido el programa al usar n hilos en comparación con usar 1 solo hilo.
+* P: fracción paralelizable del algoritmo, que, en este caso, corresponde a la proporción del trabajo que sí se puede dividir entre hilos.
+  En el problema tratado, eso es básicamente la búsqueda de la IP en los rangos de servidores de listas negras.
+* n: número de hilos, exactamente el número de hilos que se decide usar en las pruebas.
+* (1−P): fracción no paralelizable (serial), son las partes que no importa cuántos hilos se pongan, siempre hay que hacer de forma secuencial: inicialización, juntar los resultados, sincronización, etc.
+  Esta fracción es la que explica por qué con 500 hilos no se acelera más, sino que incluso empeora por overhead (*costo adicional (tiempo, recursos, memoria, energía, etc.) que se necesita para realizar una tarea, aparte del trabajo útil que realmente queremos hacer*).
+
+Al usar tantos hilos como núcleos obtenemos casi el mismo resultado que al usar el doble, debido a que en este tipo de trabajos usar un número de hilos igual al número de núcelos suele dar el mejor tiempo (o un timepo muy cercano al mejor).
+Al usar el doble de hilos se entra en sobresuscripción y normalmente el tiempo no mejora e incluso empeora. 
+* Cambios de contexto: con más hilos que núcleos, el Sistema Operativo rota hilos continuamente, lo que se traduce en tiempo perdido en vez de avanzar.
+* Pérdida de caché: más hilos compitiendo, significa más “cache thrash”, lo que traduce más latencia de memoria.
+
+
+Sin embargo, es interesante preguntarse por qué en nuestro caso, contrario a lo que se indica, obtuvimos mejores resultados cerca de los 800 hilos.
+Tomándome el atrevimiento de teorizar, pensaría que esto se debe a que, al agregar la tarea de sincronización entre hilos que se supone que no se debía implementar todavía, la tarea pasó de sor sólo cálculo, a contar con tiemposd de espera.
+* Cuando un hilo se queda esperando (por ejemplo, en la sincronización), el CPU puede usar otro hilo.
+* Al tener muchos hilos, se aumentan las chances de que siempre haya algo listo para ejecutar, y no se quede el CPU ocioso.
+
+Teniendo esto en cuenta, lo más probable es que:
+* Los hilos no estaban consumiendo CPU todo el tiempo, sino bloqueados esperando respuestas.
+* Al meter muchos hilos, mientras unos esperan, otros trabajan, lo que traduce en un CPU siempre ocupado.
+* La JVM también optimiza la ejecución interna con sus scheduler pools, que reparten mejor el trabajo con más hilos en la cola.
+
+
+
+
 3. De acuerdo con lo anterior, si para este problema en lugar de 100 hilos en una sola CPU se pudiera usar 1 hilo en cada una de 100 máquinas hipotéticas, la ley de Amdahls se aplicaría mejor?. Si en lugar de esto se usaran c hilos en 100/c máquinas distribuidas (siendo c es el número de núcleos de dichas máquinas), se mejoraría?. Explique su respuesta.
 
 
+Caso 1: 100 hilos en una sola CPU.
+* Todos los hilos compiten por los mismos núcleos, lo que significa que habrá cambio de contexto (overhead).
+* Aunque se tengan 100 hilos, si solo hay, por ejemplo, 8 núcleos, nunca se ejecutan 100 en paralelo, sino máximo 8 a la vez.
+
+Caso 2: 1 hilo en cada una de 100 máquinas distintas
+* Aquí sí se tendría paralelismo real, porque cada máquina aporta su propio CPU.
+* La Ley de Amdahl se aplica de forma más favorable, ya que el trabajo paralelo realmente escala.
+* El límite seguirá siendo la parte secuencial del algoritmo (la fracción no paralelizable), pero en este caso los 100 hilos estarían trabajando en paralelo sin competir.
+
+Caso 3: Usar c hilos en 100/c máquinas (siendo c el número de núcleos por máquina)
+* Esto sería lo óptimo en un escenario distribuido. 
+* Cada máquina aprovecharía todos sus núcleos (ejecución paralela interna), y además se combinaría el trabajo de varias máquinas. 
+* La eficiencia sería mayor que en el caso de 100 hilos en una sola máquina, porque se reducirían los cambios de contexto y se aprovecharían mejor los recursos.
 
 
